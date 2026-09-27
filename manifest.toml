@@ -1,0 +1,109 @@
+schema_version = 1
+plugin_name = "mixer"
+
+[image]
+reference = "ghcr.io/auto-nomics/autonomics/mixer@sha256:3bd67cccf298bd3c9af3d2b013dd7dfacde9ad13d51bc78b2f7f1315f01bebb7"
+tag = "2.2.1"
+upstream = "precimed/gsa-mixer v2.2.1 @ ea2a445912f83e5767d67372b6075912ed5655d8"
+license = "GPL-3.0-only"
+
+[[panels]]
+binding = "mixer_g1000_eur"
+mount = "/panels/mixer_g1000_eur"
+bundle = "wjixiang/catalog-mixer-g1000-eur-rsid"
+
+[[nodes]]
+kind = "mixer_fit1"
+desc = "Runs official gsa-mixer fit1 in an ephemeral OCI container."
+doc = """
+Runs the official precimed/gsa-mixer v2.2.1 `fit1` CLI. Input is one
+tab-separated GWAS summary-statistics File with marker, effect allele,
+other allele, sample size, and signed Z columns; gzip is supported. The
+node fixes the official image and the immutable GRCh37 EUR reference
+package binding, and emits the raw official fit JSON and complete log as
+File artifacts. No Rust fit logic is used.
+"""
+timeout_secs = 21600
+artifact_prefix = "/artifacts/mixer_container"
+
+[nodes.ports]
+inputs = [{ type = "file" }]
+outputs = [
+  { path = "mixer_fit1.json", format = "mixer_fit_json" },
+  { path = "mixer_fit1.log", format = "mixer_log" },
+]
+
+[nodes.params]
+chr2use = { type = "string", default = "1-22", doc = "Chromosomes passed to the official --chr2use argument (comma-separated integers or ranges, e.g. `1-22` or `21,22`)" }
+seed = { type = "int", default = 123, min = 0.0, max = 2147483647.0, doc = "Random seed passed to the official CLI" }
+diffevo_fast_repeats = { type = "int", default = 20, exclusive_min = 0.0, doc = "Differential-evolution repeats for fast fit sequences" }
+fast_run = { type = "bool", default = true, doc = "Use the short migration/tutorial fit sequence" }
+kmax_pdf = { type = "int", default = 10, exclusive_min = 0.0, doc = "Monte Carlo samples used for PDF/QQ output" }
+downsample_factor = { type = "int", default = 1000, exclusive_min = 0.0, doc = "Tag-SNP downsampling factor used by official diagnostics" }
+threads = { type = "int", default = 2, exclusive_min = 0.0, doc = "OpenMP threads used by libbgmg" }
+
+[nodes.command]
+interpreter = "sh"
+script_file = "scripts/fit1.sh"
+
+[nodes.command.env]
+MIXER_CHR2USE = "{{ chr2use }}"
+MIXER_SEED = "{{ seed }}"
+MIXER_DIFFEVO_FAST_REPEATS = "{{ diffevo_fast_repeats }}"
+MIXER_FAST_RUN = "{{ fast_run }}"
+MIXER_KMAX_PDF = "{{ kmax_pdf }}"
+MIXER_DOWNSAMPLE_FACTOR = "{{ downsample_factor }}"
+MIXER_THREADS = "{{ threads }}"
+
+[nodes.resources]
+cpus = 2.0
+memory = "16Gi"
+pids_limit = 512
+
+[[nodes]]
+kind = "mixer_fit2"
+desc = "Runs official gsa-mixer fit2 in an ephemeral OCI container."
+doc = """
+Runs the official precimed/gsa-mixer v2.2.1 `fit2` CLI. Inputs are
+trait1 sumstats, trait2 sumstats, and their respective official fit1
+JSON Files, in that order. The node fixes the official image and the
+immutable GRCh37 EUR reference package binding, and emits the raw
+official bivariate JSON and complete log as File artifacts. No Rust fit
+logic is used.
+"""
+timeout_secs = 21600
+artifact_prefix = "/artifacts/mixer_container"
+
+[nodes.ports]
+inputs = [{ type = "file" }, { type = "file" }, { type = "file" }, { type = "file" }]
+outputs = [
+  { path = "mixer_fit2.json", format = "mixer_fit_json" },
+  { path = "mixer_fit2.log", format = "mixer_log" },
+]
+
+[nodes.params]
+chr2use = { type = "string", default = "1-22", doc = "Chromosomes passed to the official --chr2use argument (comma-separated integers or ranges, e.g. `1-22` or `21,22`)" }
+seed = { type = "int", default = 123, min = 0.0, max = 2147483647.0, doc = "Random seed passed to the official CLI" }
+diffevo_fast_repeats = { type = "int", default = 20, exclusive_min = 0.0, doc = "Differential-evolution repeats for fast fit sequences" }
+fast_run = { type = "bool", default = true, doc = "Use the short migration/tutorial fit sequence" }
+kmax_pdf = { type = "int", default = 10, exclusive_min = 0.0, doc = "Monte Carlo samples used for PDF/QQ output" }
+downsample_factor = { type = "int", default = 1000, exclusive_min = 0.0, doc = "Tag-SNP downsampling factor used by official diagnostics" }
+threads = { type = "int", default = 2, exclusive_min = 0.0, doc = "OpenMP threads used by libbgmg" }
+
+[nodes.command]
+interpreter = "sh"
+script_file = "scripts/fit2.sh"
+
+[nodes.command.env]
+MIXER_CHR2USE = "{{ chr2use }}"
+MIXER_SEED = "{{ seed }}"
+MIXER_DIFFEVO_FAST_REPEATS = "{{ diffevo_fast_repeats }}"
+MIXER_FAST_RUN = "{{ fast_run }}"
+MIXER_KMAX_PDF = "{{ kmax_pdf }}"
+MIXER_DOWNSAMPLE_FACTOR = "{{ downsample_factor }}"
+MIXER_THREADS = "{{ threads }}"
+
+[nodes.resources]
+cpus = 2.0
+memory = "16Gi"
+pids_limit = 512
